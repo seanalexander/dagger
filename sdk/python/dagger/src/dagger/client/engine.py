@@ -7,7 +7,7 @@ from subprocess import DEVNULL, CalledProcessError, Popen, run
 from attrs import define, field
 from gql.client import AsyncClientSession, SyncClientSession
 
-from .client import Client
+from . import Client
 
 logger = logging.getLogger(__name__)
 
@@ -16,13 +16,11 @@ logger = logging.getLogger(__name__)
 class Engine:
     port: int = 8080
     workdir: str = field(factory=lambda: os.environ.get("DAGGER_WORKDIR", os.getcwd()))
-    config_path: str = field(
-        factory=lambda: os.environ.get("DAGGER_CONFIG", "./cloak.yaml")
-    )
+    config_path: str = field(factory=lambda: os.environ.get("DAGGER_CONFIG", "./cloak.yaml"))
     client: Client = field(init=False)
     _proc: subprocess.Popen | None = field(init=False, default=None)
 
-    @client.default  # type: ignore
+    @client.default
     def _set_client(self) -> Client:
         return Client(port=self.port)
 
@@ -41,10 +39,8 @@ class Engine:
     def _check_dagger_version(self) -> None:
         try:
             run(["dagger", "dev", "--help"], stdout=DEVNULL, stderr=DEVNULL, check=True)
-        except CalledProcessError as e:
-            logger.error(
-                "⚠️  Please ensure that dagger binary in $PATH is v0.3.0 or newer - a.k.a. Cloak"
-            )
+        except CalledProcessError:
+            logger.error("⚠️  Please ensure that dagger binary in $PATH is v0.3.0 or newer - a.k.a. Cloak")
             sys.exit(127)
 
     def __enter__(self) -> SyncClientSession:
